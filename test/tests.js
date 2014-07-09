@@ -8,7 +8,7 @@ var should       = require( 'should' );
 var zlib         = require( 'zlib' );
 var querystring  = require( 'querystring' );
 var parseString  = require( 'xml2js' ).parseString;
-var SAML         = require( '../lib/passport-saml/saml.js' ).SAML;
+var SAML         = require( '../lib/passport-saml/index.js' ).SAML;
 var fs           = require( 'fs' );
 var sinon        = require('sinon');
 
@@ -223,7 +223,7 @@ describe( 'passport-saml /', function() {
           });
 
         app.use( function( err, req, res, next ) {
-          //console.log( err.stack );
+          console.log( err.stack );
           res.send( 500, '500 Internal Server Error' );
         });
 
@@ -341,15 +341,62 @@ describe( 'passport-saml /', function() {
       done();
     });
 
+    it('#certToPEM should generate valid certificate', function(done){
+      var samlConfig = {
+        entryPoint: 'https://app.onelogin.com/trust/saml2/http-post/sso/371755',
+        cert: '-----BEGIN CERTIFICATE-----MIIEFzCCAv+gAwIBAgIUFJsUjPM7AmWvNtEvULSHlTTMiLQwDQYJKoZIhvcNAQEFBQAwWDELMAkGA1UEBhMCVVMxETAPBgNVBAoMCFN1YnNwYWNlMRUwEwYDVQQLDAxPbmVMb2dpbiBJZFAxHzAdBgNVBAMMFk9uZUxvZ2luIEFjY291bnQgNDIzNDkwHhcNMTQwNTEzMTgwNjEyWhcNMTkwNTE0MTgwNjEyWjBYMQswCQYDVQQGEwJVUzERMA8GA1UECgwIU3Vic3BhY2UxFTATBgNVBAsMDE9uZUxvZ2luIElkUDEfMB0GA1UEAwwWT25lTG9naW4gQWNjb3VudCA0MjM0OTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKrAzJdY9FzFLt5blArJfPzgi87EnFGlTfcV5T1TUDwLBlDkY/0ZGKnMOpf3D7ie2C4pPFOImOogcM5kpDDL7qxTXZ1ewXVyjBdMu29NG2C6NzWeQTUMUji01EcHkC8o+Pts8ANiNOYcjxEeyhEyzJKgEizblYzMMKzdrOET6QuqWo3C83K+5+5dsjDn1ooKGRwj3HvgsYcFrQl9NojgQFjoobwsiE/7A+OJhLpBcy/nSVgnoJaMfrO+JsnukZPztbntLvOl56+Vra0N8n5NAYhaSayPiv/ayhjVgjfXd1tjMVTOiDknUOwizZuJ1Y3QH94vUtBgp0WBpBSs/xMyTs8CAwEAAaOB2DCB1TAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBRQO4WpM5fWwxib49WTuJkfYDbxODCBlQYDVR0jBIGNMIGKgBRQO4WpM5fWwxib49WTuJkfYDbxOKFcpFowWDELMAkGA1UEBhMCVVMxETAPBgNVBAoMCFN1YnNwYWNlMRUwEwYDVQQLDAxPbmVMb2dpbiBJZFAxHzAdBgNVBAMMFk9uZUxvZ2luIEFjY291bnQgNDIzNDmCFBSbFIzzOwJlrzbRL1C0h5U0zIi0MA4GA1UdDwEB/wQEAwIHgDANBgkqhkiG9w0BAQUFAAOCAQEACdDAAoaZFCEY5pmfwbKuKrXtO5iE8lWtiCPjCZEUuT6bXRNcqrdnuV/EAfX9WQoXjalPi0eM78zKmbvRGSTUHwWw49RHjFfeJUKvHNeNnFgTXDjEPNhMvh69kHm453lFRmB+kk6yjtXRZaQEwS8Uuo2Ot+krgNbl6oTBZJ0AHH1MtZECDloms1Km7zsK8wAi5i8TVIKkVr5b2VlhrLgFMvzZ5ViAxIMGB6w47yY4QGQB/5Q8ya9hBs9vkn+wubA+yr4j14JXZ7blVKDSTYva65Ea+PqHyrp+Wnmnbw2ObS7iWexiTy1jD3G0R2avDBFjM8Fj5DbfufsE1b0U10RTtg==-----END CERTIFICATE-----',
+        acceptedClockSkewMs: -1
+      };
+      var samlObj = new SAML( samlConfig );
+      var certificate = samlObj.certToPEM(samlConfig.cert);
+
+      if (certificate.match(/BEGIN/g).length == 1
+        && certificate.match(/END/g).length == 1){
+        done();
+      } else {
+        done('Certificate should have only 1 BEGIN and 1 END block');
+      }
+    });
+
+    it('response with error status message should generate appropriate error', function(done) {
+      var xml = '<?xml version="1.0" encoding="UTF-8"?><saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="http://localhost/browserSamlLogin" ID="_6a377272c8662561acf1056274ef3f81" InResponseTo="_4324fb0d00661146f7dc" IssueInstant="2014-07-02T18:16:31.278Z" Version="2.0"><saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.testshib.org/idp/shibboleth</saml2:Issuer><saml2p:Status><saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Responder"><saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:InvalidNameIDPolicy"/></saml2p:StatusCode><saml2p:StatusMessage>Required NameID format not supported</saml2p:StatusMessage></saml2p:Status></saml2p:Response>';
+      var base64xml = new Buffer( xml ).toString('base64');
+      var container = { SAMLResponse: base64xml };
+      var samlObj = new SAML( {
+        cert: '-----BEGIN CERTIFICATE-----MIIEFzCCAv+gAwIBAgIUFJsUjPM7AmWvNtEvULSHlTTMiLQwDQYJKoZIhvcNAQEFBQAwWDELMAkGA1UEBhMCVVMxETAPBgNVBAoMCFN1YnNwYWNlMRUwEwYDVQQLDAxPbmVMb2dpbiBJZFAxHzAdBgNVBAMMFk9uZUxvZ2luIEFjY291bnQgNDIzNDkwHhcNMTQwNTEzMTgwNjEyWhcNMTkwNTE0MTgwNjEyWjBYMQswCQYDVQQGEwJVUzERMA8GA1UECgwIU3Vic3BhY2UxFTATBgNVBAsMDE9uZUxvZ2luIElkUDEfMB0GA1UEAwwWT25lTG9naW4gQWNjb3VudCA0MjM0OTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKrAzJdY9FzFLt5blArJfPzgi87EnFGlTfcV5T1TUDwLBlDkY/0ZGKnMOpf3D7ie2C4pPFOImOogcM5kpDDL7qxTXZ1ewXVyjBdMu29NG2C6NzWeQTUMUji01EcHkC8o+Pts8ANiNOYcjxEeyhEyzJKgEizblYzMMKzdrOET6QuqWo3C83K+5+5dsjDn1ooKGRwj3HvgsYcFrQl9NojgQFjoobwsiE/7A+OJhLpBcy/nSVgnoJaMfrO+JsnukZPztbntLvOl56+Vra0N8n5NAYhaSayPiv/ayhjVgjfXd1tjMVTOiDknUOwizZuJ1Y3QH94vUtBgp0WBpBSs/xMyTs8CAwEAAaOB2DCB1TAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBRQO4WpM5fWwxib49WTuJkfYDbxODCBlQYDVR0jBIGNMIGKgBRQO4WpM5fWwxib49WTuJkfYDbxOKFcpFowWDELMAkGA1UEBhMCVVMxETAPBgNVBAoMCFN1YnNwYWNlMRUwEwYDVQQLDAxPbmVMb2dpbiBJZFAxHzAdBgNVBAMMFk9uZUxvZ2luIEFjY291bnQgNDIzNDmCFBSbFIzzOwJlrzbRL1C0h5U0zIi0MA4GA1UdDwEB/wQEAwIHgDANBgkqhkiG9w0BAQUFAAOCAQEACdDAAoaZFCEY5pmfwbKuKrXtO5iE8lWtiCPjCZEUuT6bXRNcqrdnuV/EAfX9WQoXjalPi0eM78zKmbvRGSTUHwWw49RHjFfeJUKvHNeNnFgTXDjEPNhMvh69kHm453lFRmB+kk6yjtXRZaQEwS8Uuo2Ot+krgNbl6oTBZJ0AHH1MtZECDloms1Km7zsK8wAi5i8TVIKkVr5b2VlhrLgFMvzZ5ViAxIMGB6w47yY4QGQB/5Q8ya9hBs9vkn+wubA+yr4j14JXZ7blVKDSTYva65Ea+PqHyrp+Wnmnbw2ObS7iWexiTy1jD3G0R2avDBFjM8Fj5DbfufsE1b0U10RTtg==-----END CERTIFICATE-----',
+      });
+      samlObj.validatePostResponse( container, function( err, profile, logout ) {
+        should.exist( err );
+        err.message.should.match( /Responder/ );
+        err.message.should.match( /Required NameID format not supported/ );
+        should.exist( err.statusXml );
+        done();
+      });
+    });
+
+    it('response with error status code should generate appropriate error', function(done) {
+      var xml = '<?xml version="1.0" encoding="UTF-8"?><saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="http://localhost/browserSamlLogin" ID="_6a377272c8662561acf1056274ef3f81" InResponseTo="_4324fb0d00661146f7dc" IssueInstant="2014-07-02T18:16:31.278Z" Version="2.0"><saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.testshib.org/idp/shibboleth</saml2:Issuer><saml2p:Status><saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Responder"><saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:InvalidNameIDPolicy"/></saml2p:StatusCode></saml2p:Status></saml2p:Response>';
+      var base64xml = new Buffer( xml ).toString('base64');
+      var container = { SAMLResponse: base64xml };
+      var samlObj = new SAML( {} );
+      samlObj.validatePostResponse( container, function( err, profile, logout ) {
+        should.exist( err );
+        err.message.should.match( /Responder/ );
+        err.message.should.match( /InvalidNameIDPolicy/ );
+        should.exist( err.statusXml );
+        done();
+      });
+    });
+
     describe( 'xml signature checks /', function() {
 
-        var fakeClock;
-        beforeEach(function(){
-            fakeClock = sinon.useFakeTimers(Date.parse('2014-05-28T00:13:09Z'));
-        });
-        afterEach(function(){
-            fakeClock.restore();
-        });
+      var fakeClock;
+      beforeEach(function(){
+          fakeClock = sinon.useFakeTimers(Date.parse('2014-05-28T00:13:09Z'));
+      });
+      afterEach(function(){
+          fakeClock.restore();
+      });
 
       var samlConfig = {
         entryPoint: 'https://app.onelogin.com/trust/saml2/http-post/sso/371755',
@@ -460,13 +507,16 @@ describe( 'passport-saml /', function() {
         fakeClock = sinon.useFakeTimers(Date.parse('2014-05-28T00:13:09Z'));
 
         // Mock the SAML request being passed through Passport-SAML
-        samlObj.cacheProvider.save(requestId, new Date().toISOString());
+        samlObj.cacheProvider.save(requestId, new Date().toISOString(), function(){});
 
         samlObj.validatePostResponse( container, function( err, profile, logout ) {
           should.not.exist( err );
           profile.nameID.should.startWith( 'ploer' );
-          should.not.exist(samlObj.cacheProvider.get(requestId));
-          done();
+          samlObj.cacheProvider.get(requestId, function(err, value){
+              should.not.exist(value);
+              done();
+          });
+
         });
       });
 
@@ -484,6 +534,8 @@ describe( 'passport-saml /', function() {
           validateInResponseTo: true
         };
         var samlObj = new SAML( samlConfig );
+
+        fakeClock = sinon.useFakeTimers(Date.parse('2014-05-28T00:13:09Z'));
 
         samlObj.validatePostResponse( container, function( err, profile, logout ) {
           should.exist( err );
@@ -508,13 +560,15 @@ describe( 'passport-saml /', function() {
         fakeClock = sinon.useFakeTimers(Date.parse('2014-06-05T12:07:07.662Z'));
 
         // Mock the SAML request being passed through Passport-SAML
-        samlObj.cacheProvider.save(requestId, new Date().toISOString());
+        samlObj.cacheProvider.save(requestId, new Date().toISOString(), function(){});
 
         samlObj.validatePostResponse( container, function( err, profile, logout ) {
           should.not.exist( err );
           profile.nameID.should.startWith( 'UIS/jochen-work' );
-          should.not.exist(samlObj.cacheProvider.get(requestId));
-          done();
+          samlObj.cacheProvider.get(requestId, function(err, value){
+              should.not.exist(value);
+              done();
+          });
         });
       });
 
@@ -529,11 +583,13 @@ describe( 'passport-saml /', function() {
           var samlObj = new SAML( samlConfig );
 
           // Mock the SAML request being passed through Passport-SAML
-          samlObj.cacheProvider.save(requestId, new Date().toISOString());
+          samlObj.cacheProvider.save(requestId, new Date().toISOString(), function(){});
 
           setTimeout(function(){
-            should.not.exist(samlObj.cacheProvider.get(requestId));
-            done();
+            samlObj.cacheProvider.get(requestId, function(err, value){
+              should.not.exist(value);
+              done();
+            });
           }, 300);
         });
 
@@ -548,21 +604,29 @@ describe( 'passport-saml /', function() {
           };
           var samlObj = new SAML( samlConfig );
 
-          samlObj.cacheProvider.save(expiredRequestId1, new Date().toISOString());
-          samlObj.cacheProvider.save(expiredRequestId2, new Date().toISOString());
+          samlObj.cacheProvider.save(expiredRequestId1, new Date().toISOString(), function(){});
+          samlObj.cacheProvider.save(expiredRequestId2, new Date().toISOString(), function(){});
 
           setTimeout(function(){
-            // Add one more that should'nt expire
-            samlObj.cacheProvider.save(requestId, new Date().toISOString());
+            // Add one more that shouldn't expire
+            samlObj.cacheProvider.save(requestId, new Date().toISOString(), function(){});
 
-            should.not.exist(samlObj.cacheProvider.get(expiredRequestId1));
-            should.not.exist(samlObj.cacheProvider.get(expiredRequestId2));
-            samlObj.cacheProvider.get(requestId).should.exist;
+            samlObj.cacheProvider.get(expiredRequestId1, function(err, value){
+              should.not.exist(value);
+            });
+            samlObj.cacheProvider.get(expiredRequestId2, function(err, value){
+              should.not.exist(value);
+            });
+            samlObj.cacheProvider.get(requestId, function(err, value){
+              should.exist(value);
+            });
 
             // Let the expiration timer run again and we should have no more cached
             setTimeout(function(){
-              should.not.exist(samlObj.cacheProvider.get(requestId));
-              done();
+                samlObj.cacheProvider.get(requestId, function(err, value){
+                    should.not.exist(value);
+                    done();
+                });
             }, 300)
           }, 300);
         });

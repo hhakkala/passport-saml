@@ -5,7 +5,7 @@ This is a [SAML 2.0](http://en.wikipedia.org/wiki/SAML_2.0) authentication provi
 
 The code was originally based on Michael Bosworth's [express-saml](https://github.com/bozzltron/express-saml) library.
 
-Passport-SAML has been tested to work with both [SimpleSAMLphp](http://simplesamlphp.org/) based Identity Providers, and with [Active Directory Federation Services](http://en.wikipedia.org/wiki/Active_Directory_Federation_Services).
+Passport-SAML has been tested to work with Onelogin, Okta, Shibboleth, [SimpleSAMLphp](http://simplesamlphp.org/) based Identity Providers, and with [Active Directory Federation Services](http://en.wikipedia.org/wiki/Active_Directory_Federation_Services).
 
 ## Installation
 
@@ -51,6 +51,7 @@ Config parameter details:
 * `validateInResponseTo`: if truthy, then InResponseTo will be validated from incoming SAML responses
 * `requestIdExpirationPeriodMs`: Defines the expiration time when a Request ID generated for a SAML request will not be valid if seen in a SAML response in the `InResponseTo` field.  Default is 8 hours.
 * `cacheProvider`: Defines the implementation for a cache provider used to store request Ids generated in SAML requests as part of `InResponseTo` validation.  Default is a built-in in-memory cache provider.  For details see the 'Cache Provider' section.
+* `attributeConsumingServiceIndex`: optional `AttributeConsumingServiceIndex` attribute to add to AuthnRequest to instruct the IDP which attribute set to attach to the response ([link](http://blog.aniljohn.com/2014/01/data-minimization-front-channel-saml-attribute-requests.html))
 
 ### Provide the authentication callback
 
@@ -77,9 +78,6 @@ app.get('/login',
   }
 );
 ```
-
-Additional config values supported:
-* `samlFallback`: if set to `login-request`, will initiate a redirect to identity provider on authentication failure
 
 ### generateServiceProviderMetadata( decryptionCert )
 
@@ -153,15 +151,24 @@ To support this scenario you can provide an implementation for a cache provider 
 
 ```javascript
 {
-    save: function(key, value) {
-      // save the key with the optional value
+    save: function(key, value, callback) {
+      // save the key with the optional value, invokes the callback with the value saves
     },
-    get: function(key) {
-      // returns the value of the key if it exists, otherwise null
+    get: function(key, callback) {
+      // invokes 'callback' and passes the value if found, null otherwise
     },
-    remove: function(key) {
-      // removes the key from the cache
+    remove: function(key, callback) {
+      // removes the key from the cache, invokes `callback` with the
+      // key removed, null if no key is removed
     }
+}
+```
+
+The `callback` argument is a function in the style of normal Node callbacks:
+```
+function callback(err, result)
+{
+
 }
 ```
 
